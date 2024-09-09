@@ -1,3 +1,4 @@
+# Stage 1: Build Piper TTS
 FROM debian:bullseye as build
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -16,6 +17,8 @@ RUN cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install
 RUN cmake --build build --config Release
 RUN cmake --install build
 
+ENTRYPOINT ["/piper"]
+
 # Do a test run
 RUN ./build/piper --help
 
@@ -25,28 +28,30 @@ RUN mkdir -p piper && \
     cp -dR /build/install/* ./piper/ && \
     tar -czf "piper_${TARGETARCH}${TARGETVARIANT}.tar.gz" piper/
 
-# -----------------------------------------------------------------------------
+  # Stage 2: Set up Node.js and Piper TTS
+FROM debian:bullseye
 
-# FROM debian:bullseye as test
-# ARG TARGETARCH
-# ARG TARGETVARIANT
+# Install Node.js
+RUN apt-get update && \
+    apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
-# WORKDIR /test
+# Install dependencies for your Node.js server
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
 
-# COPY local/en-us/lessac/low/en-us-lessac-low.onnx \
-#      local/en-us/lessac/low/en-us-lessac-low.onnx.json ./
-
-# # Run Piper on a test sentence and verify that the WAV file isn't empty
-# COPY --from=build /dist/piper_*.tar.gz ./
-# RUN tar -xzf piper*.tar.gz
-# RUN echo 'This is a test.' | ./piper/piper -m en-us-lessac-low.onnx -f test.wav
-# RUN if [ ! -f test.wav ]; then exit 1; fi
-# RUN size="$(wc -c < test.wav)"; \
-#     if [ "${size}" -lt "1000" ]; then echo "File size is ${size} bytes"; exit 1; fi
-
-# -----------------------------------------------------------------------------
-
-FROM scratch
-
-# COPY --from=test /test/piper_*.tar.gz /test/test.wav ./
+# Copy the Piper TTS application
 COPY --from=build /dist/piper_*.tar.gz ./
+RUN tar -xzf piper_*.tar.gz && \
+    rm piper_*.tar.gz
+
+# Copy Node.js server code
+COPY server.js ./
+
+# Expose port for the Node.js server
+EXPOSE 3000
+
+# Set up entrypoint
+ENTRYPOINT ["node", "server.js"]
