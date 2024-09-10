@@ -2,3 +2,9 @@
 !VERSION
 !src/cpp/
 !CMakeLists.txt
+!Dockerfile
+!server.js
+!package.json
+!package-lock.json
+!voices/
+

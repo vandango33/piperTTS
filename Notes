@@ -1,0 +1,68 @@
+Key commands:
+docker build -t piper-tts-server .
+lsof -i :3005
+kill -9 <PID>
+docker run -p 3005:3005 piper-tts-server
+curl -X POST http://localhost:3005/synthesize \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Hello, world!", "voice": "en_US-amy-low"}' --output output.mp3
+
+
+
+
+
+
+Working JS File:
+const express = require('express');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+
+app.post('/synthesize', (req, res) => {
+    const { text, voiceModel } = req.body;
+
+    if (!text || !voiceModel) {
+        return res.status(400).json({ error: 'Missing text or voice model' });
+    }
+
+    const outputFilePath = path.join(__dirname, 'output.wav');
+    const modelPath = path.join(__dirname, 'voices', voiceModel);
+
+    // Run Piper command
+    const command = `echo "${text}" | /app/piper/piper --model ${modelPath} --output_file ${outputFilePath}`;
+    
+    console.log(`Executing command: ${command}`);
+
+
+    exec(command, (error, stdout, stderr) => {
+    console.log(`stdout: ${stdout}`);
+    console.error(`stderr: ${stderr}`);
+    
+    if (error) {
+        console.error(`Error: ${error.message}`);
+        return res.status(500).json({ error: 'Failed to synthesize audio' });
+    }
+
+    // Send the generated audio file back to the client
+    res.sendFile(outputFilePath, (err) => {
+        if (err) {
+            console.error(err);
+        }
+        // Clean up the output file after sending
+        fs.unlink(outputFilePath, (err) => {
+            if (err) {
+                console.error(err);
+            }
+        });
+    });
+});
+
+});
+
+const PORT = process.env.PORT || 3005;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});

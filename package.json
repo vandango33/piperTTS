@@ -1,0 +1,27 @@
+{
+  "name": "piper-tts-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "description": "![Piper logo](etc/logo.png)",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vandango33/piperTTS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vandango33/piperTTS/issues"
+  },
+  "homepage": "https://github.com/vandango33/piperTTS#readme"
+}
