@@ -1,11 +1,14 @@
 const express = require('express');
-const { exec } = require('child_process');
+const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
 app.use(express.json());
 
+let piperProcess;
+
+// Log time helper
 const logTime = (label, startTime) => {
     const endTime = Date.now();
     console.log(`${label} took ${endTime - startTime} ms`);
@@ -23,6 +26,25 @@ app.use((req, res, next) => {
     next();
 });
 
+// Preload Piper model on server start
+const preloadPiperModel = (voiceModelPath) => {
+    piperProcess = spawn('/app/piper/piper', ['--model', voiceModelPath, '--output_file', 'preloaded.wav']);
+    console.log(`Preloading Piper model: ${voiceModelPath}`);
+
+    piperProcess.stdout.on('data', (data) => {
+        console.log(`Piper stdout: ${data}`);
+    });
+
+    piperProcess.stderr.on('data', (data) => {
+        console.error(`Piper stderr: ${data}`);
+    });
+
+    piperProcess.on('close', (code) => {
+        console.log(`Piper process closed with code ${code}`);
+    });
+};
+
+// Call Piper for TTS
 app.post('/synthesize', (req, res) => {
     const totalStartTime = Date.now();
     const { input, voice } = req.body;
@@ -34,6 +56,11 @@ app.post('/synthesize', (req, res) => {
     const wavFilePath = path.join(__dirname, 'output.wav');
     const mp3FilePath = path.join(__dirname, 'output.mp3');
     const modelPath = path.join(__dirname, 'voices', `${voice}.onnx`);
+
+    // If Piper process is not running, preload it
+    if (!piperProcess || piperProcess.killed) {
+        preloadPiperModel(modelPath);
+    }
 
     // Start time tracking for Piper command execution
     const piperStartTime = Date.now();
