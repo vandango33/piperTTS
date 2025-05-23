@@ -7,7 +7,7 @@ curl -X POST http://localhost:3005/synthesize \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello, world!", "voice": "en_US-amy-low"}' --output output.mp3
 
-
+ke
 
 
 
